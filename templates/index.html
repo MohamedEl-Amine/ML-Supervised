@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe</title>
+    <style>
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 5px;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid black;
+            font-size: 24px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .disabled {
+            background-color: #f0f0f0;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tic-Tac-Toe Game</h1>
+    <div class="board">
+        {% for row in board %}
+            {% for cell in row %}
+                <div class="cell" id="cell-{{ loop.index0 }}" onclick="makeMove(this)">
+                    {{ cell }}
+                </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+    <div id="message"></div>
+    <!-- Add the Restart Button -->
+    <form method="POST" action="/restart">
+        <input type="submit" value="Restart Game" />
+    </form>
+    <script>
+        function makeMove(cell) {
+            // Disable the clicked cell
+            cell.classList.add("disabled");
+            cell.removeAttribute("onclick");
+    
+            let index = Array.from(cell.parentNode.children).indexOf(cell) + 1;
+    
+            fetch('/make_move', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `move=${index}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.winner) {
+                    document.getElementById("message").innerText = data.winner;
+                    if (data.winner.includes("win")) {
+                        // Color the winning cells based on the winner
+                        colorWinningCells(data.winning_cells, data.winner.includes("AI") ? "red" : "green");
+                    }
+                } else {
+                    document.getElementById("message").innerText = "Your turn!";
+                }
+                updateBoard(data.board);
+            });
+        }
+    
+        function updateBoard(board) {
+            let cells = document.querySelectorAll('.cell');
+            let index = 0;
+            board.forEach(row => {
+                row.forEach(cell => {
+                    cells[index].innerText = cell;
+                    // Check if the cell is empty, and enable it if it is
+                    if (cell === '') {
+                        cells[index].classList.remove("disabled");
+                        cells[index].setAttribute("onclick", "makeMove(this)");
+                    }
+                    index++;
+                });
+            });
+        }
+    
+        function colorWinningCells(winningCells, color) {
+            winningCells.forEach(cell => {
+                let row = cell[0];
+                let col = cell[1];
+                let index = row * 3 + col;
+                let cellElement = document.querySelectorAll('.cell')[index];
+                cellElement.style.backgroundColor = color;
+            });
+        }
+    </script>
+    
+</body>
+</html>
